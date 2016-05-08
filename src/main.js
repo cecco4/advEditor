@@ -278,7 +278,8 @@ function updateForm(obj) {
     objList.empty();
     for(i=0; i<obj.data.items.length; i++) {
         objList.append('<li class="list-group-item">' +
-            '<textarea rows="1" style="resize: none; width: 100%" id="item-' + i + '">' + obj.data.items[i].name + '</textarea> </li>')
+            '<textarea class="form-control" rows="1" style="resize: none; width: 100%" id="item-' + i + '">' +
+            obj.data.items[i].name + '</textarea> </li>')
     }
 
     var portList = $('#portals-list');
@@ -311,8 +312,10 @@ function updateForm(obj) {
     for(i=0; i<portals.length; i++) {
         var p = portals[i];
         portList.append('<li class="list-group-item"><div class="row"><div class="col-sm-6">' +
-            '<textarea rows="1" style="resize: none; width: 50%" id="link-'+p.node.data.key+'">'+ p.name +'</textarea></div><div class="col-sm-6">'
-            + p.node.data.name + '</div></div></li>');
+            '<textarea class="form-control" rows="1" style="resize: none; width: 50%" id="link-'+p.node.data.key+'">'
+            + p.name +'</textarea></div><div class="col-sm-4">'
+            + p.node.data.name + '</div>' +
+            '<div class="col-sm-2"><button type="button" class="btn btn-danger" id="chPortal-'+p.node.data.key+'">cambia</button></div></div></li>');
     }
 }
 
