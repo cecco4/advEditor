@@ -7,7 +7,7 @@ function init() {
                 initialContentAlignment: go.Spot.Center,
                 allowDelete: false,
                 allowCopy: false,
-                layout: $(go.ForceDirectedLayout),
+                layout: $(go.ForceDirectedLayout, { setsPortSpots: false}),
                 "undoManager.isEnabled": true
             });
 
@@ -42,8 +42,6 @@ function init() {
             { selectionAdorned: true,
                 resizable: true,
                 layoutConditions: go.Part.LayoutStandard & ~go.Part.LayoutNodeSized,
-                fromSpot: go.Spot.AllSides,
-                toSpot: go.Spot.AllSides,
                 isShadowed: true,
                 shadowColor: "#C5C1AA",
                 selectionChanged: onSelectionChanged
@@ -98,10 +96,31 @@ function init() {
                 corner: 5,
                 curve: go.Link.JumpOver
             },
-            
+
+            new go.Binding("fromSpot", "text", getFromSpot),
+            new go.Binding("toSpot", "toText", getToSpot),
+
             $(go.Shape,  // the link shape
-                { stroke: "#303B45", strokeWidth: 2.5 }),
-            
+                {   stroke: "#303B45", strokeWidth: 2.5 }),
+
+            $(go.Shape,
+                new go.Binding("toArrow", "toText",
+                    function(s) {
+                        if(s != null)
+                            return "Backward";
+                        else
+                            return "X";})
+            ),
+
+            $(go.Shape,
+                new go.Binding("fromArrow", "text",
+                    function(s) {
+                        if(s != null)
+                            return "Standard";
+                        else
+                            return "X";})
+            ),
+
             $(go.TextBlock,  // the "from" label
                 {
                     textAlign: "center",
@@ -157,9 +176,9 @@ function init() {
     var nodeDataArray = [ node1, node2, node3 ];
 
     var linkDataArray = [
-        { from: "1", to: "2", text: "0..N", toText: "1" },
-        { from: "2", to: "3", text: "0..N", toText: "1" },
-        { from: "3", to: "1", text: "0..N", toText: "1" }
+        { from: "1", to: "2", text: "est", toText: "ovest"},
+        { from: "2", to: "3", text: "sud", toText: "nord" },
+        { from: "3", to: "1", text: "ovest", toText: null }
     ];
     myDiagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
 
@@ -196,8 +215,7 @@ function initForms() {
         event.preventDefault(); // stop default behaviour of submit button
         // value of input
 
-        // add new list item
-        //selectedObj.data.items.push({name:"oggetto"});
+        //salva
         saveNode();
 
         myDiagram.model.startTransaction();
@@ -221,6 +239,22 @@ function saveNode() {
         myDiagram.model.setDataProperty(selectedObj.data.items[i], "name", $('#item-'+i).val());
     }
 
+    var it = selectedObj.findLinksConnected();
+    while (it.next()) {
+        var link = it.value;
+
+        console.log(link.data.from + " " + selectedObj.data.key + " " + link.data.to);
+
+        if(link.data.from == selectedObj.data.key) {
+            console.log(link.data.text + "->"+ $('#link-'+link.data.to).val());
+            myDiagram.model.setDataProperty(link.data, "text", $('#link-'+link.data.to).val());
+        } else if(link.data.to == selectedObj.data.key) {
+            console.log(link.data.toText + "->"+ $('#link-'+link.data.from).val());
+            myDiagram.model.setDataProperty(link.data, "toText", $('#link-'+link.data.from).val());
+        }
+
+    }
+
     myDiagram.model.commitTransaction();
 }
 
@@ -236,15 +270,49 @@ function updateForm(obj) {
 
     var name = $('#name');
     var descr = $('#descr');
-    var objList = $('#objects-list');
 
     name.val(obj.data.name);
     descr.val(obj.data.descr);
 
+    var objList = $('#objects-list');
     objList.empty();
     for(i=0; i<obj.data.items.length; i++) {
         objList.append('<li class="list-group-item">' +
             '<textarea rows="1" style="resize: none; width: 100%" id="item-' + i + '">' + obj.data.items[i].name + '</textarea> </li>')
+    }
+
+    var portList = $('#portals-list');
+    portList.empty();
+
+    var portals = [];
+
+    //Nodi uscenti con text -> portali, senza text -> non si passa
+    var it = obj.findLinksOutOf(null);
+    while (it.next()) {
+        var link = it.value;
+        if(link.data.text == null)
+            continue;
+
+        var node = myDiagram.findNodeForKey(link.data.to);
+        portals.push({ name: link.data.text, node: node });
+    }
+
+    //Nodi entranti con toText -> portali, senza toText -> non si passa
+    it = obj.findLinksInto(null);
+    while (it.next()) {
+        var link = it.value;
+        if(link.data.toText == null)
+            continue;
+
+        var node = myDiagram.findNodeForKey(link.data.from);
+        portals.push({ name: link.data.toText, node: node });
+    }
+
+    for(i=0; i<portals.length; i++) {
+        var p = portals[i];
+        portList.append('<li class="list-group-item"><div class="row"><div class="col-sm-6">' +
+            '<textarea rows="1" style="resize: none; width: 50%" id="link-'+p.node.data.key+'">'+ p.name +'</textarea></div><div class="col-sm-6">'
+            + p.node.data.name + '</div></div></li>');
     }
 }
 
@@ -256,3 +324,28 @@ function enableForm() {
     document.getElementById("form").style.display = "block";
 }
 
+function getFromSpot(a) {
+    if(a == "est")
+        return go.Spot.RightSide;
+    else if(a == "ovest")
+        return go.Spot.LeftSide;
+    else if(a=="nord")
+        return go.Spot.TopSide;
+    else if(a=="sud")
+        return go.Spot.BottomSide;
+
+    return go.Spot.AllSides;
+}
+
+function getToSpot(a) {
+    if(a == "est")
+        return go.Spot.RightSide;
+    else if(a == "ovest")
+        return go.Spot.LeftSide;
+    else if(a=="nord")
+        return go.Spot.TopSide;
+    else if(a=="sud")
+        return go.Spot.BottomSide;
+
+    return go.Spot.AllSides;
+}
