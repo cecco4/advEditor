@@ -188,20 +188,36 @@ function init() {
 
 
 var selectedObj;
+var changePortal;
+var newPortal;
 
 function onSelectionChanged(node) {
-    if (node.isSelected) {
-        selectedObj = node;
-        updateForm(node);
-    } else {
-        selectedObj = null;
-        updateForm(selectedObj);
+    if(changePortal) {
+        if(node.isSelected)
+            newPortal = node;
+        return;
     }
+
+    if (node.isSelected)
+        nodeSelected(node);
+    else
+        nodeDeselected(node);
+}
+
+function nodeSelected(node) {
+    selectedObj = node;
+    updateForm(node);
+}
+
+function nodeDeselected(node) {
+    if(node == selectedObj)
+        selectedObj = null;
+    updateForm(selectedObj);
 }
 
 
-
 function initForms() {
+    changePortal = false;
 
     // button
     var add = $('#addObject');
@@ -316,6 +332,26 @@ function updateForm(obj) {
             + p.name +'</textarea></div><div class="col-sm-4">'
             + p.node.data.name + '</div>' +
             '<div class="col-sm-2"><button type="button" class="btn btn-danger" id="chPortal-'+p.node.data.key+'">cambia</button></div></div></li>');
+
+        $('#chPortal-'+p.node.data.key).on('click', {node: p.node}, function(ev) {
+
+            if(!changePortal) {
+                changePortal = true;
+                myDiagram.select(ev.data.node);
+                $(this).text("accetta");
+            } else {
+                changePortal = false;
+                myDiagram.select(selectedObj);
+
+                var it = selectedObj.findLinksTo(ev.data.node);
+                while (it.next()) {
+                    var link = it.value;
+
+                }
+
+                $(this).text("cambia");
+            }
+        });
     }
 }
 
