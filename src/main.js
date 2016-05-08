@@ -1,3 +1,5 @@
+var nodeNum;
+
 function init() {
     var $ = go.GraphObject.make;  // for conciseness in defining templates
 
@@ -173,12 +175,14 @@ function init() {
         items: [ ]
     };
 
+    nodeNum = 4;
+
     var nodeDataArray = [ node1, node2, node3 ];
 
     var linkDataArray = [
-        //{ from: "1", to: "2", text: "est", toText: "ovest"},
-        //{ from: "2", to: "3", text: "sud", toText: "nord" },
-        //{ from: "3", to: "1", text: "ovest", toText: null }
+        { from: "1", to: "2", text: "est", toText: "ovest"},
+        { from: "2", to: "3", text: "sud", toText: "nord" },
+        { from: "3", to: "1", text: "ovest", toText: null }
     ];
     myDiagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
 
@@ -241,14 +245,8 @@ function nodeDeselected(node) {
 function initForms() {
     addNewPortal = false;
 
-    // button
-    var add = $('#addObject');
-
-    // list container
-    var listContainer = $('#objects-list');
-
     // click event for button
-    add.on('click', function() {
+    $('#addObject').on('click', function() {
 
         event.preventDefault(); // stop default behaviour of submit button
         // value of input
@@ -263,12 +261,36 @@ function initForms() {
     });
 
 
-    var save = $('#save');
-    save.on('click', saveNode);
+    $('#save').on('click', saveNode);
 
-    var addPortal = $('#addPortal');
-    addPortal.on('click', function () {
+    $('#addPortal').on('click', function () {
         addNewPortal = true;
+    })
+
+    $('#newNode').on('click', function () {
+        myDiagram.model.startTransaction();
+        myDiagram.model.addNodeData({ key: nodeNum, name: "Node", descr: "nuovo nodo bello", items: [ ] });
+        node = myDiagram.findNodeForKey(nodeNum);
+        nodeNum++;
+        console.log("aggiunto nodo: "+ node + " key: "+ node.data.key);
+        myDiagram.model.commitTransaction();
+
+        myDiagram.select(node);
+    })
+
+    $('#delete').on('click', function () {
+        myDiagram.model.startTransaction();
+
+        var todel = [];
+        var it = selectedObj.findLinksConnected(null);
+        while (it.next())
+            todel.push(it.value);
+
+        for(i=0; i<todel.length; i++)
+            myDiagram.model.removeLinkData(todel[i].data);
+        myDiagram.model.removeNodeData(selectedObj.data);
+
+        myDiagram.model.commitTransaction();
     })
 }
 
