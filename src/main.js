@@ -176,9 +176,9 @@ function init() {
     var nodeDataArray = [ node1, node2, node3 ];
 
     var linkDataArray = [
-        { from: "1", to: "2", text: "est", toText: "ovest"},
-        { from: "2", to: "3", text: "sud", toText: "nord" },
-        { from: "3", to: "1", text: "ovest", toText: null }
+        //{ from: "1", to: "2", text: "est", toText: "ovest"},
+        //{ from: "2", to: "3", text: "sud", toText: "nord" },
+        //{ from: "3", to: "1", text: "ovest", toText: null }
     ];
     myDiagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
 
@@ -188,13 +188,35 @@ function init() {
 
 
 var selectedObj;
-var changePortal;
-var newPortal;
+var addNewPortal;
 
 function onSelectionChanged(node) {
-    if(changePortal) {
-        if(node.isSelected)
-            newPortal = node;
+    if(addNewPortal) {
+        if(node.isSelected) {
+            //add link
+            myDiagram.startTransaction();
+
+            var it = selectedObj.findLinksBetween(node);
+            if(it.next()) {
+                var link = it.value;
+                console.log("aggiorno link: " + link);
+                myDiagram.model.removeLinkData(link.data);
+
+                if(link.data.from == selectedObj.data.key)
+                    myDiagram.model.addLinkData({from: selectedObj.data.key, to: node.data.key, text: "new", toText: link.data.toText});
+                else
+                    myDiagram.model.addLinkData({from: node.data.key, to: selectedObj.data.key, text: link.data.text, toText: "new"});
+
+            } else {
+                console.log("creo nuovo nodo: "+ selectedObj.data.name + "->" + node.data.name);
+                myDiagram.model.addLinkData({from: selectedObj.data.key, to: node.data.key, text: "new", toText: null});
+            }
+            myDiagram.commitTransaction();
+            addNewPortal = false;
+
+            myDiagram.select(selectedObj);
+        }
+
         return;
     }
 
@@ -217,7 +239,7 @@ function nodeDeselected(node) {
 
 
 function initForms() {
-    changePortal = false;
+    addNewPortal = false;
 
     // button
     var add = $('#addObject');
@@ -243,6 +265,11 @@ function initForms() {
 
     var save = $('#save');
     save.on('click', saveNode);
+
+    var addPortal = $('#addPortal');
+    addPortal.on('click', function () {
+        addNewPortal = true;
+    })
 }
 
 function saveNode() {
@@ -331,26 +358,28 @@ function updateForm(obj) {
             '<textarea class="form-control" rows="1" style="resize: none; width: 50%" id="link-'+p.node.data.key+'">'
             + p.name +'</textarea></div><div class="col-sm-4">'
             + p.node.data.name + '</div>' +
-            '<div class="col-sm-2"><button type="button" class="btn btn-danger" id="chPortal-'+p.node.data.key+'">cambia</button></div></div></li>');
+            '<div class="col-sm-2"><button type="button" class="btn btn-danger" id="chPortal-'+p.node.data.key+'">elimina</button></div></div></li>');
 
         $('#chPortal-'+p.node.data.key).on('click', {node: p.node}, function(ev) {
 
-            if(!changePortal) {
-                changePortal = true;
-                myDiagram.select(ev.data.node);
-                $(this).text("accetta");
-            } else {
-                changePortal = false;
-                myDiagram.select(selectedObj);
+            myDiagram.model.startTransaction();
 
-                var it = selectedObj.findLinksTo(ev.data.node);
-                while (it.next()) {
-                    var link = it.value;
+            var it = selectedObj.findLinksBetween(node);
+            if(it.next()) {
+                var link = it.value;
+                myDiagram.model.removeLinkData(link.data);
 
-                }
+                if(link.data.from == selectedObj.data.key)
+                    link.data.text = null;
+                else
+                    link.data.toText = null;
 
-                $(this).text("cambia");
+                if(link.data.text != null || link.data.toText != null)
+                    myDiagram.model.addLinkData(link.data);
             }
+            myDiagram.model.commitTransaction();
+
+            updateForm(selectedObj);
         });
     }
 }
