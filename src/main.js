@@ -246,9 +246,9 @@ function initForms() {
     addNewPortal = false;
 
     // click event for button
-    $('#addObject').on('click', function() {
+    $('#addObject').on('click', function(ev) {
 
-        event.preventDefault(); // stop default behaviour of submit button
+        //ev.preventDefault(); // stop default behaviour of submit button
         // value of input
 
         //salva
@@ -295,7 +295,7 @@ function initForms() {
 }
 
 function saveNode() {
-    event.preventDefault(); // stop default behaviour of submit button
+    //ev.preventDefault(); // stop default behaviour of submit button
 
     myDiagram.model.startTransaction();
     myDiagram.model.setDataProperty(selectedObj.data, "name", $('#name').val());
